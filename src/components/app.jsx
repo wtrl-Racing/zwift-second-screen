@@ -1,4 +1,4 @@
-﻿import React, { Component } from 'react';
+import React, { Component } from 'react';
 import PropTypes from 'prop-types';
 import { connect } from 'react-redux';
 import classnames from 'classnames';
@@ -26,6 +26,7 @@ const mapZoomLevels = {
   5: 2,
   7: 1.5,
   9: 1.5,
+  10: 2,
   17: 2.3
 };
 const mapDefaultCenter = {
@@ -36,6 +37,7 @@ const mapDefaultCenter = {
   5: { x: 0.47, y: 0.3 },
   7: { x: 0.4, y: 0.4 },
   9: { x: 0.6, y: 0.6 },
+  10: { x: 0.0, y: 0.4 },
   17: { x: 0.5, y: 0.5 }
 };
 

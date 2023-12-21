@@ -131,7 +131,13 @@ class Summary extends Component {
             </div>
           </div>
 
-          <ul className="actions">
+		<ul className="actions">
+			<li>
+			  <a className="wtrl" href="https://www.wtrl.racing" target="_blank">
+				<span class="icon-container"><i class="fa-light fa-house"></i></span>
+				<span>WTRL Home</span>
+			  </a>
+			</li>
             <li>
               <a className="fullScreen" href="#" onClick={e => this.toggleFullScreen(e)}>
                 <span class="icon-container"><i class="fa-regular fa-expand fa-lg"></i></span>
@@ -175,9 +181,9 @@ class Summary extends Component {
                 </li>
               : undefined }
 
-						{ (user && user.canLogout)
+			{ (user && user.canLogout)
               ? <li>
-                  <a className="feedback" href="https://support.wtrl.racing" target="_blank" rel="noopener">
+					<a className="helpcenter" href="https://support.wtrl.racing/hc/en-us/categories/12622256835995-Zwift-GPS" target="_blank" rel="noopener">
                     <span class="icon-container"><i class="fa-light fa-question"></i></span>
                     <span>Help Centre</span>
                   </a>
