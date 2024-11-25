@@ -1,10 +1,6 @@
 {
   "name": "zwift-second-screen",
-<<<<<<< HEAD
-  "version": "0.2.14",
-=======
-  "version": "0.2.11",
->>>>>>> parent of ef6ace1 (update to package)
+  "version": "0.2.15",
   "description": "Second Screen companion application for Zwift",
   "main": "main.js",
   "scripts": {
