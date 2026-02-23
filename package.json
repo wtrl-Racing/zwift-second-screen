@@ -1,6 +1,6 @@
 {
   "name": "zwift-second-screen",
-  "version": "0.2.23",
+  "version": "0.2.24",
   "description": "Second Screen companion application for Zwift",
   "main": "main.js",
   "scripts": {
