@@ -5,7 +5,7 @@ import classnames from 'classnames';
 import s from './zoom.css';
 
 const MIN_ZOOM = 1;
-const MAX_ZOOM = 6;
+const MAX_ZOOM = 12;
 const WHEEL_RATE = 0.2;
 
 class Zoom extends Component {
