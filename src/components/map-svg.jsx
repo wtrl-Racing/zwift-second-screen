@@ -5,7 +5,15 @@ const MapSVG = props => {
   const viewBox = props.viewBox || mapSettings.viewBox;
 
   return <div className={className} onClick={onClick}>
-    <svg className="full-size" viewBox={viewBox}>
+		<svg
+			className="full-size"
+			viewBox={viewBox}
+			preserveAspectRatio={
+				Number(mapSettings.worldId) === 9
+					? 'none'
+					: 'xMidYMid meet'
+			}
+		>
       {defs}
       <g transform={`rotate${mapSettings.rotate}`}>
         <g transform={`translate${mapSettings.translate}`}>

@@ -3,10 +3,11 @@ import PropTypes from 'prop-types';
 import { connect } from 'react-redux';
 import classnames from 'classnames';
 import moment from 'moment';
+import axios from 'axios';
 
 import { fetchProfile, fetchEvents } from '../actions/fetch';
 import { requestLoginType } from '../actions/login';
-import { setMenuState, showWorldSelector, setWorld, showStravaSettings, showRiderFilter, setRiderFilter, showGameSelector } from '../actions/summary';
+import { setSelectedRoute, setHoveredRoute, setMenuState, showWorldSelector, setWorld, showStravaSettings, showRiderFilter, setRiderFilter, showGameSelector } from '../actions/summary';
 import { connectStrava, disconnectStrava, saveStravaSettings } from '../actions/strava';
 import { toggleFullScreen } from './full-screen';
 
@@ -49,23 +50,35 @@ class Summary extends Component {
     };
   }
 
-  constructor(props) {
-    super();
+	constructor(props) {
+		super();
 
-    this.state = {
-      stravaAgeValid: true,
-      stravaDateValid: true,
-      stravaSettings: props.stravaSettings
-    }
-  }
+		this.state = {
+			stravaAgeValid: true,
+			stravaDateValid: true,
+			stravaSettings: props.stravaSettings,
+			showingRoutes: false,
+			routes: [],
+			routesLoading: false,
+			routesError: null,
+			routesSort: 'name'
+		}
+	}
 
-  componentWillReceiveProps(props) {
-    this.setState({
-      stravaAgeValid: true,
-      stravaDateValid: true,
-      stravaSettings: props.stravaSettings
-    });
-  }
+	componentWillReceiveProps(props) {
+		this.setState({
+			stravaAgeValid: true,
+			stravaDateValid: true,
+			stravaSettings: props.stravaSettings
+		});
+
+		if (
+			this.state.showingRoutes &&
+			Number(props.worldId) !== Number(this.props.worldId)
+		) {
+			this.loadRoutes(props.worldId);
+		}
+	}
 
   componentDidMount() {
     const { onFetch, onRequestLoginType } = this.props;
@@ -84,7 +97,7 @@ class Summary extends Component {
       showingGameSelector, showingStravaSettings, stravaConnected, onShowStravaSettings,
       showingRiderFilter, onShowRiderFilter, onShowGameSelector,
       onSetMenuState, onShowWorldSelector, onSetWorld, onSaveStravaSettings } = this.props;
-    const { stravaAgeValid, stravaSettings } = this.state;
+		const { stravaAgeValid, stravaSettings, showingRoutes } = this.state;
     const { credit } = mapSettings;
     const disabled = !profile.riding;
 
@@ -130,7 +143,7 @@ class Summary extends Component {
               </span>
             </div>
           </div>
-
+{showingRoutes ? this.renderRoutesMenu() : (
 		<ul className="actions">
 			<li>
 			  <a className="wtrl" href="https://www.wtrl.racing" target="_blank">
@@ -145,15 +158,6 @@ class Summary extends Component {
               </a>
             </li>
 
-            { (user && user.canFilterRiders && !eventName)
-              ? <li>
-                  <a className="riderFilter" href="#" onClick={e => this.showRiderFilter(e)}>
-                    <span class="icon-container"><i class="fa-kit fa-zwift fa-lg"></i></span>
-                    <span>Events</span>
-                  </a>
-                </li>
-              : undefined }
-
             { (user && user.canSetWorld)
               ? <li>
                   <a className="world" href="#" onClick={e => this.showWorldSelector(e)}>
@@ -161,7 +165,33 @@ class Summary extends Component {
                       <span>Change World</span>
                   </a>
                 </li>
-              : undefined }
+								: undefined}
+
+							<li>
+								<a
+									className="routes"
+									href="#"
+									onClick={e => {
+										e.preventDefault();
+										e.stopPropagation();
+										this.setState({ showingRoutes: true }, () => {
+											this.loadRoutes();
+										});
+									}}
+								>
+									<span class="icon-container"><i class="fa-regular fa-route"></i></span>
+									<span>View Routes</span>
+								</a>
+							</li>
+
+							{(user && user.canFilterRiders && !eventName)
+								? <li>
+									<a className="riderFilter" href="#" onClick={e => this.showRiderFilter(e)}>
+										<span class="icon-container"><i class="fa-kit fa-zwift fa-lg"></i></span>
+										<span>Events</span>
+									</a>
+								</li>
+								: undefined}
 
             { (user && user.canStrava && !profile.anonymous)
               ? <li>
@@ -201,13 +231,27 @@ class Summary extends Component {
 
             { (user && user.canLogout)
               ? <li>
-                  <a className="logout" href={eventName ? `/login/${eventName}` : '/login'}>
-                    <span class="icon-container">{( profile.anonymous ? <i class="fa-light fa-right-to-bracket fa-lg"></i> : <i class="fa-light fa-right-from-bracket fa-lg"></i>)}</span>
-                    <span>{profile.anonymous ? 'Login' : 'Logout'}</span>
-                  </a>
+									<a className="logout" href="/login" onClick={evt => {
+											evt.preventDefault();
+
+											axios.post('/logout')
+												.then(() => {
+													window.location.replace('/login?loggedOut=1');
+												})
+												.catch(() => {
+													window.alert('Unable to log out. Please try again.');
+												});
+										}}
+									>
+										<span className="icon-container">
+											<i className="fa-light fa-right-from-bracket fa-lg"></i>
+										</span>
+										<span>Logout</span>
+									</a>
                 </li>
             : undefined }
-          </ul>
+						</ul>
+					)}
         </div>
 
         {showingWorldSelector ?
@@ -218,7 +262,7 @@ class Summary extends Component {
                 >
             </div>
             <div className="popup-content world-selector">
-              <h2>Select World</h2>
+              <h2>Select A Zwift World</h2>
               <ul>
                 <li onClick={() => onSetWorld(1)}>
                   <span className="world-image world-1"></span>
@@ -251,6 +295,10 @@ class Summary extends Component {
                 <li onClick={() => onSetWorld(8)}>
                   <span className="world-image world-8"></span>
                   <span className="world-name">Crit City</span>
+								</li>
+								<li onClick={() => onSetWorld(9)}>
+                  <span className="world-image world-9"></span>
+                  <span className="world-name">Makuri</span>
                 </li>
                 <li onClick={() => onSetWorld(10)}>
                   <span className="world-image world-10"></span>
@@ -259,13 +307,13 @@ class Summary extends Component {
                 <li onClick={() => onSetWorld(11)}>
                   <span className="world-image world-11"></span>
                   <span className="world-name">Paris</span>
-                </li>
-                <li onClick={() => onSetWorld(9)}>
-                  <span className="world-image world-9"></span>
-                  <span className="world-name">Makuri</span>
-                </li>
-                <li onClick={() => onSetWorld(17)}>
-                  <span className="world-image world-17"></span>
+								</li>
+								<li onClick={() => onSetWorld(12)}>
+									<span className="world-image world-12"></span>
+									<span className="world-name">Gravel Mountain</span>
+								</li>
+                <li onClick={() => onSetWorld(13)}>
+                  <span className="world-image world-13"></span>
                   <span className="world-name">Scotland</span>
                 </li>
               </ul>
@@ -386,6 +434,336 @@ class Summary extends Component {
     )
   }
 
+	loadRoutes(worldId = this.props.worldId) {
+		const requestId = (this.routesRequestId || 0) + 1;
+		this.routesRequestId = requestId;
+
+		this.setState({
+			routes: [],
+			routesLoading: true,
+			routesError: null
+		});
+
+		axios.get(`/routes/world/${worldId}`)
+			.then(response => {
+				if (this.routesRequestId !== requestId) {
+					return;
+				}
+
+				const routes = response.data.routes;
+
+				if (!Array.isArray(routes)) {
+					throw new Error('Invalid routes response.');
+				}
+
+				this.setState({
+					routes: routes.slice().sort((a, b) =>
+						String(a.routeName).localeCompare(String(b.routeName))
+					),
+					routesLoading: false,
+					routesError: null
+				});
+			})
+			.catch(error => {
+				if (this.routesRequestId !== requestId) {
+					return;
+				}
+
+				const status = error.response && error.response.status;
+
+				this.setState({
+					routes: [],
+					routesLoading: false,
+					routesError: status === 401
+						? 'Please sign in through WTRL again.'
+						: 'Unable to load routes. Please try again.'
+				});
+			});
+	}
+
+	renderRoutesMenu() {
+		const worldNames = {
+			1: 'Watopia',
+			2: 'Richmond',
+			3: 'London',
+			4: 'New York',
+			5: 'Innsbruck',
+			6: 'Bologna',
+			7: 'Yorkshire',
+			8: 'Crit City',
+			9: 'Makuri Islands',
+			10: 'France',
+			11: 'Paris',
+			12: 'Gravel Mountain',
+			13: 'Scotland'
+		};
+
+		const worldName = worldNames[this.props.worldId] || 'Current world';
+
+		const sortedRoutes = this.state.routes.slice().sort((a, b) => {
+			const byName = String(a.routeName).localeCompare(String(b.routeName));
+
+			if (this.state.routesSort === 'distance') {
+				return Number(a.distanceInMeters) - Number(b.distanceInMeters)
+					|| byName;
+			}
+
+			if (this.state.routesSort === 'released') {
+				const releaseTime = value => {
+					const date = moment(value, moment.ISO_8601, true);
+					return date.isValid() ? date.valueOf() : 0;
+				};
+
+				return releaseTime(b.releaseDate) - releaseTime(a.releaseDate)
+					|| byName;
+			}
+
+			return byName;
+		});
+
+		return (
+			<div onClick={e => e.stopPropagation()}>
+				<ul className="actions">
+					<li>
+						<a
+							href="#"
+							onClick={e => {
+								e.preventDefault();
+								this.setState({ showingRoutes: false });
+							}}
+						>
+							<span className="icon-container">
+								<i className="fa-light fa-arrow-left"></i>
+							</span>
+							<span>Back to menu</span>
+						</a>
+					</li>
+				</ul>
+
+				<div style={{ padding: '0 20px 20px', color: 'rgb(117, 117, 117)' }}>
+					<div style={{
+						margin: '8px 0 16px',
+						paddingBottom: '14px',
+						borderBottom: '1px solid rgba(255,255,255,0.12)'
+					}}>
+						<div style={{
+							color: '#909090',
+							fontSize: '11px',
+							fontWeight: 600,
+							letterSpacing: '1.5px',
+							textTransform: 'uppercase',
+							marginBottom: '6px'
+						}}>
+							Explore routes for
+						</div>
+
+						<h4 style={{
+							margin: 0,
+							color: 'rgb(217, 185, 48)',
+							fontSize: '22px',
+							fontWeight: 700,
+							lineHeight: 1.2
+						}}>
+							{worldName}
+						</h4>
+					</div>
+					<div style={{ position: 'relative', marginBottom: '15px' }}>
+						<button
+							type="button"
+							aria-expanded={this.state.showRoutesSort}
+							onClick={() => this.setState(state => ({
+								showRoutesSort: !state.showRoutesSort
+							}))}
+							style={{
+								background: 'transparent',
+								border: 0,
+								borderRadius: 0,
+								padding: '7px 0',
+								color: '#c4c4c4',
+								font: 'inherit',
+								cursor: 'pointer'
+							}}
+						>
+							{{ name: 'Name', distance: 'Distance', released: 'Released' }[
+								this.state.routesSort
+							]}
+							<i
+								className="fa-solid fa-arrow-down-short-wide"
+								aria-hidden="true"
+								style={{ marginLeft: '10px' }}
+							/>
+						</button>
+
+						{this.state.showRoutesSort && (
+							<div style={{
+								position: 'absolute',
+								top: '100%',
+								left: 0,
+								width: '210px',
+								background: '#282828',
+								boxShadow: '0 4px 12px rgba(0,0,0,0.5)',
+								zIndex: 10
+							}}>
+								{[
+									{
+										value: 'name',
+										label: 'Name',
+										icon: 'fa-arrow-up-z-a'
+									},
+									{
+										value: 'distance',
+										label: 'Distance',
+										icon: 'fa-arrow-down-short-wide'
+									},
+									{
+										value: 'released',
+										label: 'Released',
+										icon: 'fa-arrow-down-1-9'
+									}
+								].map(option => (
+									<button
+										key={option.value}
+										type="button"
+										onClick={() => this.setState({
+											routesSort: option.value,
+											showRoutesSort: false
+										})}
+										style={{
+											display: 'flex',
+											alignItems: 'center',
+											width: '100%',
+											background: 'transparent',
+											border: 0,
+											borderRadius: 0,
+											padding: '14px 16px',
+											color: this.state.routesSort === option.value
+												? '#ffd525' : '#c4c4c4',
+											font: 'inherit',
+											textAlign: 'left',
+											cursor: 'pointer'
+										}}
+									>
+										<i
+											className={`fa-sharp fa-solid ${option.icon}`}
+											aria-hidden="true"
+											style={{ width: '30px' }}
+										/>
+										{option.label}
+									</button>
+								))}
+							</div>
+						)}
+					</div>
+					{this.state.routesLoading && <p>Loading routes…</p>}
+
+					{this.state.routesError && (
+						<p style={{ color: '#ffd525' }}>
+							{this.state.routesError}
+						</p>
+					)}
+					<ul style={{ listStyle: 'none', padding: 0, margin: 0 }}>
+						{sortedRoutes.map(route => (
+							<li
+								key={route.routeHash}
+								onClick={event => {
+									event.stopPropagation();
+
+									const selected = this.props.selectedRoute;
+									const isSelected = selected &&
+										Number(selected.routeHash) === Number(route.routeHash);
+
+									this.props.onSelectRoute(isSelected ? null : route);
+								}}
+								style={{
+									padding: '10px 0',
+									borderBottom: '1px solid rgba(255, 255, 255, 0.1)'
+								}}
+							>
+								<div
+									onMouseEnter={() => {
+										this.props.onHoverRoute(route.routeHash);
+									}}
+									onMouseLeave={() => {
+										this.props.onHoverRoute(null);
+									}}
+									style={{
+										color: '#c4c4c4',
+										fontWeight: 700,
+										cursor: 'pointer'
+									}}
+								>
+									{route.routeName}
+								</div>
+
+								<div style={{ color: '#c4c4c4', fontSize: '12px' }}>
+									{(Number(route.distanceInMeters) / 1000).toFixed(1)} km
+									{' · '}
+									{Math.round(Number(route.ascentInMeters))} m ascent
+								</div>
+								{this.props.selectedRoute &&
+									Number(this.props.selectedRoute.routeHash) === Number(route.routeHash) && (
+										<div
+											onClick={event => event.stopPropagation()}
+											style={{
+												marginTop: '12px',
+												padding: '12px',
+												background: 'rgba(255, 255, 255, 0.05)',
+												borderLeft: '3px solid var(--wtrl-gold)',
+												color: '#c4c4c4',
+												fontSize: '13px',
+												lineHeight: '1.8'
+											}}
+										>
+											<div>
+												Route: {(Number(route.distanceInMeters) / 1000).toFixed(2)} km
+											</div>
+											<div>
+												Ascent: {Math.round(Number(route.ascentInMeters))} m
+											</div>
+											<div>
+												Lead-in: {(Number(route.leadinDistanceInMeters || 0) / 1000).toFixed(2)} km
+											</div>
+											<div>
+												Lead-in ascent: {Math.round(Number(route.leadinAscentInMeters || 0))} m
+											</div>
+											<div>
+												<strong>ID:</strong> {route.routeHash}
+											</div>
+											{route.releaseDate && (
+												<div>
+													Released: {moment(route.releaseDate).format('D MMM YYYY')}
+												</div>
+											)}
+
+											<button
+												type="button"
+												onClick={event => {
+													event.stopPropagation();
+													this.props.onSelectRoute(null);
+													this.props.onHoverRoute(null);
+												}}
+											style={{
+												marginTop: '10px',
+												padding: '6px 12px',
+												border: '1px solid rgb(217, 185, 48)',
+												borderRadius: 0,
+												background: 'rgb(217, 185, 48)',
+												color: '#000',
+												cursor: 'pointer'
+											}}
+											>
+												Close details
+											</button>
+										</div>
+									)}
+							</li>
+						))}
+					</ul>
+				</div>
+			</div>
+		);
+	}
+
   renderEventDetail(e) {
     return (
       <li key={`event-${e.id}`}
@@ -500,7 +878,8 @@ class Summary extends Component {
 }
 
 const mapStateToProps = (state) => {
-  return {
+	return {
+		worldId: state.world.worldId,
     showingMenu: state.summary.showingMenu,
     showingWorldSelector: state.summary.worldSelector,
     profile: state.profile,
@@ -515,13 +894,15 @@ const mapStateToProps = (state) => {
     riderFilterEvent: state.summary.riderFilterEvent,
     events: state.summary.events,
     eventsFetching: state.summary.eventsFetching,
-    whatsNew: state.summary.whatsNew,
+		whatsNew: state.summary.whatsNew,
+		selectedRoute: state.summary.selectedRoute,
     currentEvent: state.world.currentEvent
   }
 }
 
 const mapDispatchToProps = (dispatch) => {
-  return {
+	return {
+		onSelectRoute: route => dispatch(setSelectedRoute(route)),
     onSetMenuState: showMenu => dispatch(setMenuState(showMenu)),
     onShowWorldSelector: showSelector => dispatch(showWorldSelector(showSelector)),
     onSetWorld: worldId => dispatch(setWorld(worldId)),
@@ -533,7 +914,8 @@ const mapDispatchToProps = (dispatch) => {
     onSaveStravaSettings: (settings) => dispatch(saveStravaettings(settings)),
     onShowRiderFilter: show => dispatch(showRiderFilter(show)),
     onShowGameSelector: show => dispatch(showGameSelector(show)),
-    onSetRiderFilter: filter => dispatch(setRiderFilter(filter)),
+		onSetRiderFilter: filter => dispatch(setRiderFilter(filter)),
+		onHoverRoute: routeHash => dispatch(setHoveredRoute(routeHash)),
     onGetEvents: () => dispatch(fetchEvents())
   }
 }

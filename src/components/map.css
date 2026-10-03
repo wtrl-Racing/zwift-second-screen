@@ -35,12 +35,12 @@
         max-width: 100%;
     }
 
-    & .img {
-        height: 100%;
-        background-size:contain;
-        background-repeat: no-repeat;
-        background-position-x: 50%;
-    }
+& .img {
+    height: 100%;
+    background-size: contain;
+    background-repeat: no-repeat;
+    background-position-x: 50%;
+}
 
     @media (max-width: 600px) {
         & .map-attribute, &.custom-map .map-attribute {

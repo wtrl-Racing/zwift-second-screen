@@ -1,4 +1,4 @@
-﻿import axios from 'axios';
+import axios from 'axios';
 import React, { Component} from 'react';
 import PropTypes from 'prop-types';
 import { connect } from 'react-redux';
@@ -134,23 +134,38 @@ class Map extends Component {
     })
   }
 
-  loadRoads(roadsFile) {
-    this.gettingRoads = roadsFile;
-    if (roadsFile) {
-      axios.get(roadsFile).then(response => {
-        if (this.gettingRoads == roadsFile) {
-          this.setState({
-            roads: response.data
-          });
-          this.gettingRoads = null;
-        }
-      });
-    } else {
-      this.setState({
-        roads: null
-      });
-    }
-  }
+	loadRoads(roadsFile) {
+		this.gettingRoads = roadsFile;
+		this.setState({ roads: null });
+
+		if (!roadsFile) {
+			return;
+		}
+
+		axios.get(new URL(roadsFile, window.location.origin).toString(), {
+			responseType: 'json',
+			withCredentials: false
+		})
+			.then(response => {
+				if (this.gettingRoads !== roadsFile) {
+					return;
+				}
+
+				const roads = typeof response.data === 'string'
+					? JSON.parse(response.data)
+					: response.data;
+
+				if (!Array.isArray(roads)) {
+					throw new Error('Road file must contain a JSON array.');
+				}
+
+				this.setState({ roads });
+				this.gettingRoads = null;
+			})
+			.catch(error => {
+				console.error('Road file failed:', roadsFile, error);
+			});
+	}
 
   viewScale() {
     const { zoomLevel } = this.props;
@@ -181,20 +196,32 @@ class Map extends Component {
     return <div
         className={classnames("map", { "custom-map": mapSettings && mapSettings.map })}
         style={{ backgroundColor: mapSettings.background }}
-      >
-      <div className="map-route">
-        <div className="full-size img" style={{ backgroundImage: `url(${mapUrl})` }} />
-      </div>
+		>
+
+			<div className="map-route">
+				<div
+					className="full-size img"
+					style={{ backgroundImage: `url(${mapUrl})` }}
+				/>
+			</div>
+
       {svgFile ?
         <div className="map-route" dangerouslySetInnerHTML={{ __html: this.replaceViewBox(svgFile) }} />
 				: undefined
       }
 
-      <MapSVG {...svgProps}
-        onClick={ev => { ev.stopPropagation(); this.selectRider(-1); }}
-        defs={this.renderDefs()}
-      >
-        { roads && <MapRoads roads={roads} />}
+			<MapSVG {...svgProps}
+				onClick={ev => { ev.stopPropagation(); this.selectRider(-1); }}
+				defs={this.renderDefs()}
+			>
+
+				{roads && (
+					<MapRoads
+						roads={roads}
+						hoveredRouteHash={this.props.hoveredRouteHash}
+						selectedRoute={this.props.selectedRoute}
+					/>
+				)}
 
         { positions
           ? <g id="riders" className="riders" ref={input => this.riders = input}>
@@ -433,7 +460,9 @@ const mapStateToProps = (state) => {
     displayActivity: state.ghosts.displayActivity,
     riderFilter: state.summary.riderFilter,
     zoomLevel: state.summary.zoomLevel,
-    eventName: state.summary.eventName,
+		eventName: state.summary.eventName,
+		hoveredRouteHash: state.summary.hoveredRouteHash,
+		selectedRoute: state.summary.selectedRoute,
     useMetric: !state.profile || state.profile.useMetric
   }
 }

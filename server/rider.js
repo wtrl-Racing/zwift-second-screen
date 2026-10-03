@@ -1,4 +1,4 @@
-﻿const EventEmitter = require('events');
+const EventEmitter = require('events');
 const Ghosts = require('./ghosts');
 const AllRiders = require('./allRiders');
 const Events = require('./events');
@@ -30,7 +30,8 @@ const COURSE_TO_WORLD = {
   12: 8,
   14: 10,
   15: 11,
-  13: 9
+	13: 9,
+	17: 13
 }
 
 const EVENT_PREFIX = "event:";

@@ -128,6 +128,14 @@ class PointsOfInterest {
           ? this.worldSettings.events[eventName][this.worldId]
           : undefined;
 
+		if (!baseSettings) {
+			console.error('Missing world settings:', this.worldId);
+			console.error(
+				'Configured world IDs:',
+				Object.keys(this.worldSettings || {})
+			);
+		}
+
     const provider = (eventSettings && eventSettings.points)
           ? eventSettings.points
           : baseSettings.points;

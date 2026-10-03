@@ -265,3 +265,99 @@
         }
     }
 }
+
+.login.wtrl-login {
+    position: fixed;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    left: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-sizing: border-box;
+    padding: 24px;
+    overflow: auto;
+    border: 0;
+    background: #101010;
+    color: #f0f8ff;
+    font-family: "Segoe UI", Arial, sans-serif;
+}
+
+.wtrl-login .wtrl-login-card {
+    box-sizing: border-box;
+    width: 100%;
+    max-width: 460px;
+    padding: 48px 32px;
+    border: 1px solid #303030;
+    border-radius: 12px;
+    background: #181818;
+    box-shadow: 0 16px 48px rgba(0, 0, 0, 0.4);
+    text-align: center;
+}
+
+.wtrl-login .wtrl-login-brand {
+    margin-bottom: 12px;
+    color: #ffd525;
+    font-size: 14px;
+    font-weight: 800;
+    letter-spacing: 4px;
+}
+
+.wtrl-login h1 {
+    margin: 0 0 20px;
+    padding: 0;
+    background: transparent;
+    color: #f0f8ff;
+    font-size: 38px;
+    font-weight: 700;
+    line-height: 1.2;
+}
+
+.wtrl-login p {
+    margin: 0 0 28px;
+    color: #c4c4c4;
+    font-size: 16px;
+    line-height: 1.6;
+}
+
+.wtrl-login .wtrl-login-button {
+    box-sizing: border-box;
+    width: 100%;
+    min-height: 48px;
+    padding: 12px 20px;
+    border: 1px solid #ffd525;
+    border-radius: 6px;
+    background: #ffd525;
+    color: #111;
+    font-family: inherit;
+    font-size: 16px;
+    font-weight: 700;
+    cursor: pointer;
+    -webkit-app-region: no-drag;
+}
+
+    .wtrl-login .wtrl-login-button:hover,
+    .wtrl-login .wtrl-login-button:focus {
+        border-color: #ffe477;
+        background: #ffe477;
+    }
+
+    .wtrl-login .wtrl-login-button:focus {
+        outline: 2px solid #ffe477;
+        outline-offset: 4px;
+    }
+
+.wtrl-login .wtrl-login-note {
+    margin: 24px 0 0;
+    color: #999;
+    font-size: 13px;
+}
+
+.wtrl-login .wtrl-login-logo {
+    display: block;
+    width: 220px;
+    max-width: 100%;
+    height: auto;
+    margin: 0 auto 28px;
+}

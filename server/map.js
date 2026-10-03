@@ -1,4 +1,4 @@
-﻿const axios = require('axios');
+const axios = require('axios');
 const fs = require('fs');
 const NodeCache = require('node-cache')
 const xml2js = require('xml2js')
@@ -26,10 +26,14 @@ const scheduleMaps = {
   RICHMOND: 2,
   LONDON: 3,
   NEWYORK: 4,
-  INNSBRUCK: 5,
-  YORKSHIRE: 7,
-  FRANCE: 10,
-  MAKURIISLANDS: 9,
+	INNSBRUCK: 5,
+	BOLOGNA : 6,
+	YORKSHIRE: 7,
+	CRITCITY: 8,
+	MAKURIISLANDS: 9,
+	FRANCE: 10,
+	PARIS: 11,
+	GRAVELMOUNTAIN: 12,
   SCOTLAND: 13
 };
 

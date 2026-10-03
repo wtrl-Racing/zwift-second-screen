@@ -126,3 +126,19 @@ export function showGameSelector(showSelector) {
     visible: showSelector
   };
 }
+
+export const SET_HOVERED_ROUTE = 'SET_HOVERED_ROUTE';
+export function setHoveredRoute(routeHash) {
+	return {
+		type: SET_HOVERED_ROUTE,
+		routeHash: routeHash == null ? null : Number(routeHash)
+	};
+}
+
+export const SET_SELECTED_ROUTE = 'SET_SELECTED_ROUTE';
+export function setSelectedRoute(route) {
+	return {
+		type: SET_SELECTED_ROUTE,
+		route
+	};
+}

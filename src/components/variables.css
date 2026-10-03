@@ -7,21 +7,15 @@
     --close-button-hover: #808080;
     --button-background: #FC6719;
     --button-background-disabled: #B7B7B7;
-
     --app-button-background: rgba(212, 175, 55, 1.00);
     --app-button-background-pressed: #FF9035;
-
     --ghosts-border: #FC6719;
     --ghosts-background: rgba(255, 255, 255, 0.6);
-
     --highlight-color: white;
     --highlight-background: #FC6719;
     --shaded-background: #DDDDDD;
-
     --activity-color: #FC6719;
     --activity-color2: aliceblue;
-
     --menu-background: black;
-
-    --wtrl-gold:rgba(212, 175, 55, 1.00);
+    --wtrl-gold: rgb(217, 185, 48);
 }

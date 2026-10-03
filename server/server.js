@@ -1,5 +1,5 @@
-﻿const express = require('express');
-const expressWs = require('express-ws');
+const express = require('express');
+const axios = require('axios');
 const bodyParser = require('body-parser');
 const cookieParser = require('cookie-parser');
 const path = require('path');
@@ -11,6 +11,8 @@ const PointsOfInterest = require('./pointsOfInterest');
 const insertSiteSettings = require('./siteSettings');
 const StravaSegments = require('./strava-segments');
 const pollInterval = require('./pollInterval');
+
+const registerWtrlAuth = require('./wtrlAuth');
 
 const EVENT_PREFIX = "event:";
 
@@ -45,13 +47,11 @@ class Server {
   }
 
   initialise() {
-    this.app = express();
-    if (this.riderProvider.login) {
-      expressWs(this.app);
-    }
-
+		this.app = express();
+		this.app.use(doForceSSL);
     this.app.use(bodyParser.json())
-    this.app.use(cookieParser())
+		this.app.use(cookieParser())
+		this.wtrlAuth = registerWtrlAuth(this.app);
     this.app.use(compression());
 
     if (this.stravaSettings) {
@@ -68,32 +68,105 @@ class Server {
       sendJson(res, { type, canLogout, canStrava, canSetWorld, canFilterRiders });
     })
 
-		// Enable CORS for post login
-    this.app.options('/login', respondCORS)
-    if (this.riderProvider.login) {
-      this.app.post('/login', (req, res) => {
-        const { username, password } = req.body
-        console.log(`login: ${username}`)
-        this.processLogin(res, this.riderProvider.login(username, password))
-      })
-    } else {
-      this.app.post('/login', (req, res) => {
-        const { id } = req.body
-        console.log(`login: ${id}`)
-        this.processLogin(res, this.riderProvider.loginWithId(id))
-      })
+		this.app.options('/login', respondCORS);
 
-      this.app.get('/login/:id', (req, res) => {
-        const { id } = req.params
-        if (isNaN(id)) {
-          indexRoute(req, res);
-        } else {
-          console.log(`login: ${id}`)
-          this.processLogin(res, this.riderProvider.loginWithId(id), true)
-        }
-      })
-    }
+		this.app.post('/login', (req, res) => {
+			res.status(401);
+			sendJson(res, {
+				status: 401,
+				statusText: 'Please sign in through WTRL'
+			});
+		});
 
+		this.app.post('/logout', async (req, res) => {
+			res.set('Cache-Control', 'no-store');
+
+			try {
+				await this.wtrlAuth.clearSession(req, res);
+				sendJson(res, { success: true });
+			} catch (error) {
+				console.error('GPS logout failed:', error.message);
+
+				res.status(502);
+				sendJson(res, {
+					status: 502,
+					statusText: 'Unable to log out. Please try again.'
+				});
+			}
+		});
+		this.app.get('/routes/world/:worldId', async (req, res) => {
+			const headers = this.wtrlAuth.getRouteHeaders(req);
+
+			if (!headers) {
+				res.status(401);
+				sendJson(res, {
+					status: 401,
+					statusText: 'WTRL sign-in required'
+				});
+				return;
+			}
+
+			const worldId = Number(req.params.worldId);
+
+			if (
+				!/^[0-9]{1,2}$/.test(req.params.worldId) ||
+				!Number.isInteger(worldId) ||
+				worldId < 1 ||
+				(worldId > 13)
+			) {
+				res.status(400);
+				sendJson(res, {
+					status: 400,
+					statusText: 'Invalid world'
+				});
+				return;
+			}
+
+			// GPS uses 17 for Scotland; the WTRL database uses 13.
+			const databaseWorldId = worldId;
+
+			try {
+				const response = await axios.get(
+					`https://www.wtrl.racing/api3/gps/routes/world/${databaseWorldId}`,
+					{
+						headers,
+						timeout: 15000,
+						maxRedirects: 0,
+						maxContentLength: 1048576
+					}
+				);
+
+				const data = response.data;
+
+				if (
+					!data ||
+					data.success !== true ||
+					!Array.isArray(data.payload)
+				) {
+					throw new Error('Invalid WTRL routes response.');
+				}
+
+				sendJson(res, { routes: data.payload });
+			} catch (error) {
+				const upstreamStatus = error.response && error.response.status;
+
+				const status = upstreamStatus === 401 ? 401
+					: upstreamStatus === 429 ? 429
+						: 502;
+
+				console.error('GPS routes request failed:', upstreamStatus || error.message);
+
+				res.status(status);
+				sendJson(res, {
+					status,
+					statusText: status === 401
+						? 'WTRL sign-in required'
+						: status === 429
+							? 'Too many requests. Please try again shortly.'
+							: 'Routes are temporarily unavailable.'
+				});
+			}
+		});
     this.app.get('/profile', this.processRider(rider => rider.getProfile()))
     this.app.get('/positions', this.processRider(rider => rider.getPositions()))
     this.app.get('/riders', this.processRider(rider => rider.getRiders ? rider.getRiders() : Promise.resolve([])))
@@ -246,61 +319,6 @@ class Server {
     this.app.options('/ghosts/post', respondCORS)
     this.app.post('/ghosts/regroup', this.processRider((rider, req) => Promise.resolve(rider.regroupGhosts())))
 
-    if (this.riderProvider.login) {
-      this.app.ws('/listen', (ws, req) => {
-        const cookie = req.cookies.zssToken;
-        const rider = this.riderProvider.getRider(cookie);
-
-        if (rider) {
-          const sendWorld = worldId => send('world', { worldId });
-          const sendPositions = positions => {
-            send('positions', positions);
-
-            const token = stravaConnect.getToken(req);
-            if (this.stravaSettings && token) {
-              this.worldPromise(rider).then(worldId =>
-                this.stravaSegments.get(token, worldId, positions, stravaConnect.getSettings(req))
-                  .then(strava => {
-                    send('strava', strava);
-                  })
-              )
-            }
-          }
-
-          let unsubscribeRider;
-
-          const unsubscribe = () => {
-            rider.removeListener('positions', sendPositions);
-            rider.removeListener('world', sendWorld);
-
-            if (unsubscribeRider) unsubscribeRider();
-          }
-          ws.on('close', unsubscribe);
-
-          if (this.riderProvider.subscribe) {
-            unsubscribeRider = this.riderProvider.subscribe(cookie);
-          }
-
-          const send = (name, data) => {
-            try {
-              ws.send(JSON.stringify({ name, data }));
-            } catch (ex) {
-              unsubscribe();
-              console.error(ex);
-              ws.close();
-            }
-          }
-
-          const world = rider.getCurrentWorld ? rider.getCurrentWorld() : rider.getWorld();
-          if (world) sendWorld(world);
-
-          rider
-            .on('positions', sendPositions)
-            .on('world', sendWorld)
-        }
-      });
-    }
-
     this.app.get('/map.svg', (req, res) => {
       const worldId = req.query.world || undefined;
       this.map.getSvg(worldId).then(data => sendImg(res, data, 'image/svg+xml'));
@@ -357,10 +375,9 @@ class Server {
     this.app.get('/', doForceSSL, (req, res) => {
       indexRoute(req, res);
     })
-    this.app.get('/zwiftquest', doForceSSL, (req, res) => {
-      this.allowAnonymous(req, res);
-      indexRoute(req, res);
-    })
+		this.app.get('/zwiftquest', doForceSSL, (req, res) => {
+			indexRoute(req, res);
+		});
 
     if (this.siteSettings && this.siteSettings.static) {
       const { route, path } = this.siteSettings.static
@@ -402,18 +419,6 @@ class Server {
     })
   }
 
-  allowAnonymous(req, res) {
-    const cookie = req.cookies.zssToken;
-    const rider = this.riderProvider.getRider(cookie);
-    if (!rider && this.riderProvider.loginAnonymous) {
-      const result = this.riderProvider.loginAnonymous();
-
-      const expires = new Date()
-      expires.setFullYear(expires.getFullYear() + 1);
-      res.cookie('zssToken', result.cookie, { path: '/', httpOnly: true, expires });
-    }
-  }
-
   start(port) {
     this.port = port;
     this.server = this.app.listen(port, () => {
@@ -429,58 +434,38 @@ class Server {
     }
   }
 
-  processLogin(res, promise, redirect = false) {
-		promise
-      .then(result => {
-        console.log(`login successful (${result.id} - ${result.firstName} ${result.lastName})`)
-
-        if (this.siteSettings && this.siteSettings.approvalRequired
-            && result.privacy && result.privacy.approvalRequired) {
-          res.status(403);
-          sendJson(res, {
-            status: 403,
-            statusText: this.siteSettings.approvalRequired.message,
-            alt: this.siteSettings.approvalRequired.alt
-          })
-          return;
-        }
-
-        const expires = new Date()
-        expires.setFullYear(expires.getFullYear() + 1);
-        res.cookie('zssToken', result.cookie, { path: '/', httpOnly: true, expires });
-
-        if (redirect)
-          res.redirect('/')
-        else
-          sendJson(res, { message: 'ok' })
-      })
-      .catch(err => {
-        console.log('login failed - ', err)
-        const { status, statusText } = err.response;
-        res.status(status);
-
-        if (redirect)
-          res.redirect('/login')
-        else if (err.response.data === 'partner.not.authorized') {
-          sendJson(res, {
-            statusText: 'Please opt-in to sharing Zwift activities with ZwiftGPS',
-            alt: {
-              message: 'You\'ll need to opt-in before ZwiftGPS can find you riding in Zwift',
-              link: { addr: 'https://my.zwift.com/profile/connections', caption: 'OPT-IN: Zwift Connections' }
-            }
-          });
-        }
-        else {
-          sendJson(res, { status, statusText });
-        }
-      })
-  }
-
 	processRider(callbackFn) {
-    return (req, res) => {
-		  const cookie = req.cookies.zssToken;
-      const event = this.getEventName(req, true);
-      const rider = this.riderProvider.getRider(cookie, event);
+		return async (req, res) => {
+			let identity;
+
+			try {
+				identity = await this.wtrlAuth.getIdentity(req);
+			} catch (error) {
+				console.error('GPS session lookup failed:', error.message);
+
+				res.status(502);
+				sendJson(res, {
+					status: 502,
+					statusText: 'WTRL is temporarily unavailable. Please try again.'
+				});
+				return;
+			}
+
+			if (!identity) {
+				res.status(401);
+				sendJson(res, {
+					status: 401,
+					statusText: 'WTRL sign-in required'
+				});
+				return;
+			}
+
+			const event = this.getEventName(req, true);
+			const rider = this.riderProvider.getOrCreateRider(
+				identity.zwid,
+				event
+			);
+
 			if (rider) {
         const promise = rider.restorePromise ? rider.restorePromise : Promise.resolve();
         promise.then(() => {
@@ -504,14 +489,22 @@ class Server {
     return event ? event.toLowerCase() : undefined;
   }
 
-  worldPromise(rider) {
-    const worldId = rider.getCurrentWorld ? rider.getCurrentWorld() : rider.getWorld()
-    if (worldId) {
-      return Promise.resolve(worldId);
-    } else {
-      return this.map.getWorld()
-    }
-  }
+	async worldPromise(rider) {
+		const worldId = rider.getCurrentWorld
+			? rider.getCurrentWorld()
+			: rider.getWorld();
+
+		if (Number(worldId) === 17) {
+			await rider.setWorld(13);
+			return 13;
+		}
+
+		if (worldId) {
+			return worldId;
+		}
+
+		return this.map.getWorld();
+	}
 
 }
 module.exports = Server;
@@ -550,7 +543,7 @@ function respondCORS(req, res) {
 
 function sendJson(res, data) {
   setAllowOrigin(res);
-  res.setHeader('Cache-Control', 'nocache');
+	res.setHeader('Cache-Control', 'no-store');
   res.setHeader('Last-Modified', (new Date()).toUTCString());
   res.setHeader("Pragma", "no-cache");
   res.setHeader("Expires", 0);

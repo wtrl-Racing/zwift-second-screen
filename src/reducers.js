@@ -1,4 +1,4 @@
-﻿import { combineReducers } from 'redux';
+import { combineReducers } from 'redux';
 import { routerReducer } from 'react-router-redux';
 
 import { RECEIVE_PROFILE, RECEIVE_POSITIONS, RECEIVE_WORLD, RECEIVE_STRAVA, RECEIVE_MAPSETTINGS,
@@ -10,7 +10,7 @@ import {
   RECEIVE_GHOSTS, ADDING_GHOST, ADDED_GHOST, CHANGED_GHOST,
   REQUESTING_REGROUP, RECEIVE_REGROUP, RECEIVE_ACTIVITY, RESET_GHOSTS
 } from './actions/ghosts';
-import { SET_MENU_STATE, SHOW_WORLD_SELECTOR, SHOW_STRAVA_SETTINGS, SHOW_RIDER_FILTER, SET_RIDER_FILTER, SET_ZOOM_LEVEL, TOGGLE_INFOPANEL, SET_EVENT_NAME, SHOW_GAME_SELECTOR } from './actions/summary';
+import { SET_SELECTED_ROUTE, SET_HOVERED_ROUTE, SET_MENU_STATE, SHOW_WORLD_SELECTOR, SHOW_STRAVA_SETTINGS, SHOW_RIDER_FILTER, SET_RIDER_FILTER, SET_ZOOM_LEVEL, TOGGLE_INFOPANEL, SET_EVENT_NAME, SHOW_GAME_SELECTOR } from './actions/summary';
 import { DISCONNECTED_STRAVA, GOT_STRAVA_SETTINGS } from './actions/strava';
 
 import { COOKIE_WARNING } from './actions/cookie-warning'
@@ -204,12 +204,23 @@ const defaultSummary = {
   eventsFetching: false,
   zoomLevel: 1,
   showInfoPanel: screenSize.width >= 900,
-  eventName: undefined,
+	eventName: undefined,
+	hoveredRouteHash: null,
+	selectedRoute: null,
   whatsNew: getCookie('whats-new', {}) // feature: false
 }
 
 function summary(state = defaultSummary, action) {
-  switch (action.type) {
+	switch (action.type) {
+		case SET_SELECTED_ROUTE:
+			return Object.assign({}, state, {
+				selectedRoute: action.route,
+				hoveredRouteHash: null
+			});
+		case SET_HOVERED_ROUTE:
+			return Object.assign({}, state, {
+				hoveredRouteHash: action.routeHash
+			});
     case SET_MENU_STATE:
       return Object.assign({}, state, {
         showingMenu: action.visible

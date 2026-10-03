@@ -1,5 +1,16 @@
-﻿import axios from 'axios';
+import axios from 'axios';
 import { push } from 'react-router-redux';
+
+export function startWtrlLogin() {
+	const backendUrl = new URL(
+		axios.defaults.baseURL || window.location.origin,
+		window.location.origin
+	);
+
+	const loginUrl = new URL('/auth/wtrl', backendUrl);
+
+	window.location.replace(loginUrl.toString());
+}
 
 export function requestLoginType(data) {
   return (dispatch, getState) => {
