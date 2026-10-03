@@ -8,11 +8,7 @@ const MapSVG = props => {
 		<svg
 			className="full-size"
 			viewBox={viewBox}
-			preserveAspectRatio={
-				Number(mapSettings.worldId) === 9
-					? 'none'
-					: 'xMidYMid meet'
-			}
+			preserveAspectRatio="xMidYMid meet"
 		>
       {defs}
       <g transform={`rotate${mapSettings.rotate}`}>

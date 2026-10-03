@@ -1,51 +1,92 @@
 @import 'variables.css';
 
 .points-of-interest {
-  pointer-events: none;
+    pointer-events: none;
 }
 
 .map {
-    & .point-of-interest {
-        & circle {
-            stroke: red;
-            fill: transparent;
-        }
+    & .point-of-interest
 
-        & image {
-            animation: flash-in 0.5s;
-            animation-iteration-count: 5;
-        }
+{
+    & circle
 
-        &.visited image {
-            animation: grow-shrink 1s;
-            filter: url(#grayscale);
-        }
-    }
+{
+    stroke: red;
+    fill: transparent;
+}
+
+& image {
+    animation: flash-in 0.5s;
+    animation-iteration-count: 5;
+}
+
+&.visited image {
+    animation: grow-shrink 1s;
+    filter: url(#grayscale);
+}
+
+}
 }
 
 @keyframes grow-shrink {
-  from {
-    transform: scale(1);
-    filter: none;
-  }
-  50% {
-    transform: scale(2);
-    filter: none;
-  }
-  to {
-    transform: scale(1);
-    filter: none;
-  }
+    from {
+        transform: scale(1);
+        filter: none;
+    }
+
+    50% {
+        transform: scale(2);
+        filter: none;
+    }
+
+    to {
+        transform: scale(1);
+        filter: none;
+    }
 }
 
 @keyframes flash-in {
-  from {
-    opacity: 1;
-  }
-  50% {
-    opacity: 0;
-  }
-  to {
-    opacity: 1;
-  }
+    from {
+        opacity: 1;
+    }
+
+    50% {
+        opacity: 0;
+    }
+
+    to {
+        opacity: 1;
+    }
 }
+
+
+/* Let individual arches receive hover and tap events. */
+.points-of-interest .point-of-interest {
+    pointer-events: all;
+    cursor: pointer;
+}
+
+.poi-name-popover {
+    position: fixed;
+    z-index: 10000;
+    box-sizing: border-box;
+    padding: 5px 8px;
+    font-size: 12px;
+    line-height: 1.25;
+    border: 1px solid rgb(217, 185, 48);
+    border-radius: 0;
+    background: #222;
+    color: rgb(217, 185, 48);
+    font-family: Arial, sans-serif;
+    font-weight: 700;
+    text-align: center;
+    overflow-wrap: break-word;
+    pointer-events: auto;
+}
+
+    .poi-name-popover .poi-arch-id {
+        margin-top: 3px;
+        font-size: 10px;
+        font-weight: 400;
+        color: #c4c4c4;
+    }

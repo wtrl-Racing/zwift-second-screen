@@ -35,5 +35,5 @@ process.env
 .vs/
 npm-debug.log*
 web.config
-/maps/makuriislands-MARTIN-SUPERCOMPUTER.png
-/maps/makuriislands.psd
+/map_editing/
+/old_maps/

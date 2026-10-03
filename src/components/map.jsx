@@ -198,12 +198,14 @@ class Map extends Component {
         style={{ backgroundColor: mapSettings.background }}
 		>
 
-			<div className="map-route">
-				<div
-					className="full-size img"
-					style={{ backgroundImage: `url(${mapUrl})` }}
-				/>
-			</div>
+			{Number(worldId) !== 9 && (
+				<div className="map-route">
+					<div
+						className="full-size img"
+						style={{ backgroundImage: `url(${mapUrl})` }}
+					/>
+				</div>
+			)}
 
       {svgFile ?
         <div className="map-route" dangerouslySetInnerHTML={{ __html: this.replaceViewBox(svgFile) }} />
@@ -214,6 +216,16 @@ class Map extends Component {
 				onClick={ev => { ev.stopPropagation(); this.selectRider(-1); }}
 				defs={this.renderDefs()}
 			>
+				{Number(worldId) === 9 && (
+					<image
+						xlinkHref={mapUrl}
+						x={-1135900}
+						y={-772800}
+						width={1273901}
+						height={1273901}
+						preserveAspectRatio="none"
+					/>
+				)}
 
 				{roads && (
 					<MapRoads

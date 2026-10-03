@@ -14,3 +14,7 @@ process.env
 /img
 /src
 settings.js
+
+/map_editing/
+/old_maps/
+

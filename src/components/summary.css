@@ -640,3 +640,34 @@
 
 }
 }
+
+.summary {
+    height: 100%;
+    min-height: 0;
+    overflow-y: auto;
+    overflow-x: hidden;
+    -webkit-overflow-scrolling: touch;
+    touch-action: pan-y;
+}
+
+@media (max-width: 600px) {
+    .summary .world-selector {
+        max-width: 95%;
+        padding: 0 12px 16px;
+    }
+
+        .summary .world-selector ul {
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            gap: 10px 6px;
+        }
+
+        .summary .world-selector .world-image {
+            width: 60px;
+            height: 60px;
+        }
+
+        .summary .world-selector .world-name {
+            font-size: 12px;
+            line-height: 15px;
+        }
+}
