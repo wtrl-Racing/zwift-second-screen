@@ -1,4 +1,4 @@
-﻿"use strict";
+"use strict";
 var webpack = require('webpack');
 var path = require('path');
 var loaders = require('./webpack.loaders');
@@ -51,7 +51,8 @@ module.exports = {
 		}),
     new CopyWebpackPlugin([
       { from: 'img', to: 'img' },
-      { from: 'maps', to: 'maps' },
+			{ from: 'maps', to: 'maps' },
+			{ from: 'roads', to: 'roads' },
       { from: 'favicon.ico', to: 'favicon.ico' },
       { from: 'app.json', to: 'app.json' },
       { from: 'launcher-icon-*.png' },
