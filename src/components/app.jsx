@@ -114,13 +114,23 @@ class App extends Component {
 				</h1>
         <div className="content" onMouseMove={() => this.onMouseMove()}>
           {!develop
-          ? <Zoom
-                followSelector=".rider-position circle"
-                defaultZoom={mapZoomLevels[worldId] || 1}
-                defaultCenter={mapDefaultCenter[worldId]}
-                onChangeZoomLevel={onSetZoomLevel}
-              >
-              <Map />
+						? <Zoom
+							ref={control => { this.zoomControl = control; }}
+							backgroundColor={
+								this.props.mapSettings && this.props.mapSettings.background
+							}
+							followSelector=".rider-position circle"
+							defaultZoom={mapZoomLevels[worldId] || 1}
+							defaultCenter={mapDefaultCenter[worldId]}
+							onChangeZoomLevel={onSetZoomLevel}
+						>
+							<Map
+								onFitRoute={(positions, group) => {
+									if (this.zoomControl) {
+										this.zoomControl.fitRoute(positions, group);
+									}
+								}}
+							/>
             </Zoom>
           : <Map develop={develop} /> }
           <Summary />
@@ -156,7 +166,8 @@ const mapStateToProps = (state, ownProps) => {
     showInfo: !!state.world.infoPanel,
     eventName: state.summary.eventName,
     overlay: state.environment.electron || state.environment.openfin,
-    openfin: state.environment.openfin
+		openfin: state.environment.openfin,
+		mapSettings: state.mapSettings,
   }
 }
 

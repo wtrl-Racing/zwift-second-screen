@@ -102,7 +102,21 @@ class Map extends Component {
     onStopPolling();
   }
 
-  componentDidUpdate() {
+	componentDidUpdate(previousProps, previousState) {
+		const selected = this.props.selectedRoute;
+		const previous = previousProps.selectedRoute;
+
+		const routeChanged = selected && (
+			!previous ||
+			Number(selected.routeHash) !== Number(previous.routeHash)
+		);
+
+		if (
+			selected &&
+			(routeChanged || previousState.roads !== this.state.roads)
+		) {
+			this.fitSelectedRoute();
+		}
     if (this.riders) {
       const labels = this.riders.querySelectorAll('.rider-name');
       if (labels) {
@@ -120,6 +134,35 @@ class Map extends Component {
       }
     }
   }
+
+	fitSelectedRoute() {
+		const { selectedRoute, onFitRoute, develop } = this.props;
+		const { roads } = this.state;
+
+		if (
+			develop ||
+			!selectedRoute ||
+			!roads ||
+			!this.mapElement ||
+			typeof onFitRoute !== 'function'
+		) {
+			return;
+		}
+
+		const route = roads.find(road =>
+			Number(road.id) === Number(selectedRoute.routeHash)
+		);
+
+		if (!route || !route.positions || route.positions.length < 2) {
+			return;
+		}
+
+		const group = this.mapElement.querySelector('svg .map-roads');
+
+		if (group) {
+			onFitRoute(route.positions, group);
+		}
+	}
 
   rectsOverlap(r1, r2) {
     return (r1.left < r2.right && r1.right > r2.left )
@@ -193,9 +236,9 @@ class Map extends Component {
       viewBox
     }
 
-    return <div
-        className={classnames("map", { "custom-map": mapSettings && mapSettings.map })}
-        style={{ backgroundColor: mapSettings.background }}
+		return <div
+			ref={element => { this.mapElement = element; }}
+			className={classnames("map", { "custom-map": mapSettings && mapSettings.map })}
 		>
 
 			{Number(worldId) !== 9 && (
