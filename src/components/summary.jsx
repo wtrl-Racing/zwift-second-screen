@@ -715,10 +715,10 @@ class Summary extends Component {
 											}}
 										>
 											<div>
-												Route: {(Number(route.distanceInMeters) / 1000).toFixed(2)} km
+											<i class="fa-solid fa-route"></i>: {(Number(route.distanceInMeters) / 1000).toFixed(2)} km
 											</div>
 											<div>
-												Ascent: {Math.round(Number(route.ascentInMeters))} m
+											<i class="far fa-mountains" aria-hidden="true"></i>: {Math.round(Number(route.ascentInMeters))} m
 											</div>
 											<div>
 												Lead-in: {(Number(route.leadinDistanceInMeters || 0) / 1000).toFixed(2)} km
@@ -727,8 +727,34 @@ class Summary extends Component {
 												Lead-in ascent: {Math.round(Number(route.leadinAscentInMeters || 0))} m
 											</div>
 											<div>
-												<strong>ID:</strong> {route.routeHash}
+											<i class="fa-kit fa-zwift fa-lg"></i>: {route.routeHash}
+										</div>
+										{route.zwiftinsiderId && (
+											<div>
+												<a
+													href={`https://zwiftinsider.com/route/${encodeURIComponent(route.zwiftinsiderId)}/`}
+													target="_blank"
+													rel="noopener"
+													onClick={event => event.stopPropagation()}
+													style={{ color: 'rgb(217, 185, 48)' }}
+												>
+													Zwift Insider
+												</a>
 											</div>
+										)}
+										{Number(route.stravaSegmentId) > 0 && (
+											<div>
+												<a
+													href={`https://www.strava.com/segments/${route.stravaSegmentId}`}
+													target="_blank"
+													rel="noopener"
+													onClick={event => event.stopPropagation()}
+													style={{ color: 'rgb(217, 185, 48)' }}
+												>
+													<i class="fa-brands fa-strava"></i> Strava Segment
+												</a>
+											</div>
+										)}
 											{route.releaseDate && (
 												<div>
 													Released: {moment(route.releaseDate).format('D MMM YYYY')}

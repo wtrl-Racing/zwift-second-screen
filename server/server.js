@@ -52,7 +52,11 @@ class Server {
     this.app.use(bodyParser.json())
 		this.app.use(cookieParser())
 		this.wtrlAuth = registerWtrlAuth(this.app);
-    this.app.use(compression());
+		this.app.use(compression());
+
+		if (typeof this.settings.registerRoutes === 'function') {
+			this.settings.registerRoutes(this.app);
+		}
 
     if (this.stravaSettings) {
       const { clientId, clientSecret } = this.stravaSettings

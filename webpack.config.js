@@ -1,4 +1,4 @@
-﻿"use strict";
+"use strict";
 var webpack = require('webpack');
 var path = require('path');
 var loaders = require('./webpack.loaders');
@@ -35,6 +35,9 @@ module.exports = {
     ];
   },
 	devServer: {
+		proxy: {
+			'/roads': {	target: 'http://localhost:8080'	}
+		},
 		contentBase: "./public",
 		// do not print bundle build stats
 		noInfo: true,
