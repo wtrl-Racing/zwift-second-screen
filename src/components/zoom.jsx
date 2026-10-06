@@ -31,6 +31,23 @@ class Zoom extends Component {
         }
     }
 
+	componentDidMount() {
+		this.touchListeners = {
+			touchstart: event => this.onTouchStart(event),
+			touchmove: event => this.onTouchMove(event),
+			touchend: event => this.onTouchEnd(event),
+			touchcancel: event => this.onTouchCancel(event)
+		};
+
+		Object.keys(this.touchListeners).forEach(name => {
+			this.zoomElement.addEventListener(
+				name,
+				this.touchListeners[name],
+				{ passive: false, capture: true }
+			);
+		});
+	}
+
     componentWillReceiveProps(props) {
         let { follow, scale } = this.state;
 
@@ -52,8 +69,9 @@ class Zoom extends Component {
         const { scale, center, follow } = this.state;
         const scalePercent = scale * 100;
 
-        const style = {
-            width: `${scalePercent}%`,
+			const style = {
+						touchAction: 'none',
+						width: `${scalePercent}%`,
             height: `${scalePercent}%`,
             top: `${50 - center.y * scale * 100}%`,
             left: `${50 - center.x * scale * 100}%`
@@ -67,10 +85,6 @@ class Zoom extends Component {
                         onMouseDown={e => this.onMouseDown(e)}
                         onMouseUp={e => this.onMouseUp(e)}
                         onMouseMove={e => this.onMouseMove(e)}
-                        onTouchStart={e => this.onTouchStart(e)}
-                        onTouchEnd={e => this.onTouchEnd(e)}
-                        onTouchMove={e => this.onTouchMove(e)}
-                        onTouchCancel={e => this.onTouchCancel(e)}
                     >
                 {this.props.children}
             </div>
@@ -129,7 +143,7 @@ class Zoom extends Component {
 		const top = Math.max(viewport.top, 0);
 		const bottom = Math.min(viewport.bottom, window.innerHeight);
 
-		const menu = document.querySelector('.summary .menu-content');
+		const menu = window.innerWidth > 600 ? document.querySelector('.summary .menu-content'): null;
 
 		if (menu) {
 			const rect = menu.getBoundingClientRect();
@@ -223,6 +237,20 @@ class Zoom extends Component {
 
 	componentWillUnmount() {
 		this.stopZoomAnimation();
+
+		// window.removeEventListener('touchstart', this.debugTouch, true);
+		// window.removeEventListener('touchmove', this.debugTouch, true);
+		// if (this.touchDebug) this.touchDebug.remove();
+
+		if (this.zoomElement && this.touchListeners) {
+			Object.keys(this.touchListeners).forEach(name => {
+				this.zoomElement.removeEventListener(
+					name,
+					this.touchListeners[name],
+					true
+				);
+			});
+		}
 	}
 
 	clickFollow() {
@@ -297,18 +325,45 @@ class Zoom extends Component {
         };
     }
 
-    onTouchStart(event) {
-        this.start(this.fromTouchEvent(event))
-    }
-    onTouchEnd(event) {
-        this.end(this.fromTouchEvent(event))
-    }
-    onTouchMove(event) {
-        this.move(this.fromTouchEvent(event))
-    }
-    onTouchCancel(event) {
-        this.end(this.fromTouchEvent(event))
-    }
+	onTouchStart(event) {
+		if (event.cancelable) event.preventDefault();
+		this.start(this.fromTouchEvent(event));
+	}
+
+	onTouchEnd(event) {
+		const details = this.fromTouchEvent(event);
+
+		if (details.points.length) {
+			this.start(details);
+		} else {
+			this.end();
+		}
+	}
+
+	onTouchMove(event) {
+		if (event.cancelable) event.preventDefault();
+
+		const details = this.fromTouchEvent(event);
+		const previous = this.state.touchLast;
+
+		if (!this.state.dragging || !details.points.length) {
+			return;
+		}
+
+		if (
+			!previous.points ||
+			previous.points.length !== details.points.length
+		) {
+			this.start(details);
+			return;
+		}
+
+		this.move(details);
+	}
+
+	onTouchCancel(event) {
+		this.end();
+	}
 
     fromTouchEvent(event) {
         const points = [];

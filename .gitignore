@@ -37,3 +37,6 @@ npm-debug.log*
 web.config
 /map_editing/
 /old_maps/
+
+node_modules/
+node_modules-backup*/

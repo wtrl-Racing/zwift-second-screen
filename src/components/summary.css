@@ -131,7 +131,7 @@
     left: 0;
     top: 0;
     bottom: 0;
-    width: 320px;
+    width: 250px;
     max-width: 90vw;
     transition: left ease 400ms;
     z-index: 350;
@@ -671,3 +671,23 @@
             line-height: 15px;
         }
 }
+
+.summary {
+    pointer-events: none;
+}
+
+    .summary .menu-content,
+    .summary .menu-button,
+    .summary .menu-button-new,
+    .summary .popup-overlay,
+    .summary .popup-content {
+        pointer-events: auto;
+    }
+
+    .summary .menu-overlay {
+        pointer-events: auto;
+    }
+
+        .summary .menu-overlay.hide {
+            pointer-events: none;
+        }
